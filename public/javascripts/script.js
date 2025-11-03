@@ -260,7 +260,7 @@ function connectWebSocket() {
     if (data.success) {
       displayMessage(data.message);
       scrollToBottom();
-      
+
       // Recharger les conversations et retirer l'utilisateur de "Tous les utilisateurs"
       loadConversations().then(() => {
         // Retirer l'utilisateur de la liste "Tous les utilisateurs" s'il y est
@@ -306,7 +306,7 @@ async function loadConversations() {
     if (response.ok) {
       console.log('Conversations reçues:', data.conversations);
       displayConversations(data.conversations);
-      
+
       // Retourner les conversations pour permettre le chaînage
       return data.conversations;
     } else {
@@ -423,7 +423,16 @@ async function selectConversation(user) {
   document.querySelectorAll('.conversation-item').forEach((item) => {
     item.classList.remove('active');
   });
-  document.querySelector(`[data-user-id="${user._id}"]`).classList.add('active');
+  const selectedConvItem = document.querySelector(`[data-user-id="${user._id}"]`);
+  if (selectedConvItem) {
+    selectedConvItem.classList.add('active');
+
+    // Retirer immédiatement le badge de notification
+    const badge = selectedConvItem.querySelector('.unread-badge');
+    if (badge) {
+      badge.remove();
+    }
+  }
 
   // Afficher le chat
   document.getElementById('no-chat-selected').style.display = 'none';
