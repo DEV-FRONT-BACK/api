@@ -263,8 +263,12 @@ function connectWebSocket() {
       displayMessage(message);
       scrollToBottom();
 
-      // Marquer comme lu
+      console.log('Émission message-received et message-read pour:', message._id);
+      socket.emit('message-received', { message_id: message._id });
       socket.emit('message-read', { message_id: message._id });
+    } else {
+      console.log('Émission message-received pour:', message._id);
+      socket.emit('message-received', { message_id: message._id });
     }
 
     loadConversations();
@@ -275,9 +279,7 @@ function connectWebSocket() {
       displayMessage(data.message);
       scrollToBottom();
 
-      // Recharger les conversations et retirer l'utilisateur de "Tous les utilisateurs"
       loadConversations().then(() => {
-        // Retirer l'utilisateur de la liste "Tous les utilisateurs" s'il y est
         if (currentRecipient) {
           const userInAllList = allUsersList.querySelector(`[data-user-id="${currentRecipient._id}"]`);
           if (userInAllList) {
@@ -288,8 +290,14 @@ function connectWebSocket() {
     }
   });
 
-  socket.on('message-read-confirmation', () => {
-    // Mettre à jour l'indicateur de lecture
+  socket.on('message-received-confirmation', (data) => {
+    console.log('Message reçu confirmation:', data);
+    updateMessageStatus(data.message_id, 'received');
+  });
+
+  socket.on('message-read-confirmation', (data) => {
+    console.log('Message lu confirmation:', data);
+    updateMessageStatus(data.message_id, 'read');
     loadConversations();
   });
 
@@ -482,7 +490,14 @@ async function loadMessages(userId) {
 
     if (response.ok) {
       messagesContainer.innerHTML = '';
-      data.messages.forEach((msg) => displayMessage(msg));
+      data.messages.forEach((msg) => {
+        displayMessage(msg);
+
+        if (msg.recipient._id === currentUser._id && msg.status !== 'read') {
+          console.log('Marquage comme lu du message:', msg._id);
+          socket.emit('message-read', { message_id: msg._id });
+        }
+      });
     }
   } catch (error) {
     console.error('Erreur chargement messages:', error);
@@ -493,13 +508,14 @@ function displayMessage(message) {
   const div = document.createElement('div');
   const isSent = message.sender._id === currentUser._id;
   div.className = `message ${isSent ? 'sent' : 'received'}`;
+  div.dataset.messageId = message._id;
 
   const time = new Date(message.createdAt).toLocaleTimeString('fr-FR', {
     hour: '2-digit',
     minute: '2-digit',
   });
 
-  const statusIcon = message.status === 'read' ? '✓✓' : '✓';
+  const statusIcon = getStatusIcon(message.status);
 
   div.innerHTML = `
     <div class="message-content">
@@ -507,12 +523,36 @@ function displayMessage(message) {
       <div class="message-meta">
         <span class="message-time">${time}</span>
         ${message.edited ? '<span class="edited-badge">modifié</span>' : ''}
-        ${isSent ? `<span class="message-status">${statusIcon}</span>` : ''}
+        ${isSent ? `<span class="message-status" data-status="${message.status}">${statusIcon}</span>` : ''}
       </div>
     </div>
   `;
 
   messagesContainer.appendChild(div);
+}
+
+function getStatusIcon(status) {
+  switch (status) {
+    case 'sent':
+      return '<svg class="status-icon" viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M5.5 12L1 7.5l1.5-1.5L5.5 9l7-7L14 3.5z"/></svg>';
+    case 'received':
+      return '<svg class="status-icon" viewBox="0 0 18 16" width="18" height="16"><path fill="currentColor" d="M6.5 12L2 7.5l1.5-1.5L6.5 9l7-7L15 3.5z"/><path fill="currentColor" d="M10.5 12L6 7.5l1.5-1.5L10.5 9l7-7L19 3.5z"/></svg>';
+    case 'read':
+      return '<svg class="status-icon read" viewBox="0 0 18 16" width="18" height="16"><path fill="#31a24c" d="M6.5 12L2 7.5l1.5-1.5L6.5 9l7-7L15 3.5z"/><path fill="#31a24c" d="M10.5 12L6 7.5l1.5-1.5L10.5 9l7-7L19 3.5z"/></svg>';
+    default:
+      return '';
+  }
+}
+
+function updateMessageStatus(messageId, status) {
+  const messageDiv = document.querySelector(`.message[data-message-id="${messageId}"]`);
+  if (messageDiv) {
+    const statusSpan = messageDiv.querySelector('.message-status');
+    if (statusSpan) {
+      statusSpan.dataset.status = status;
+      statusSpan.innerHTML = getStatusIcon(status);
+    }
+  }
 }
 
 // Envoi de messages

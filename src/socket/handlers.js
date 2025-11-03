@@ -74,11 +74,11 @@ const socketHandler = (io) => {
       }
     });
 
-    socket.on('message-read', async (data) => {
+    socket.on('message-received', async (data) => {
       try {
         const { message_id } = data;
 
-        const message = await Message.findByIdAndUpdate(message_id, { status: 'read' }, { new: true }).populate(
+        const message = await Message.findByIdAndUpdate(message_id, { status: 'received' }, { new: true }).populate(
           'sender recipient',
           '-password'
         );
@@ -87,6 +87,39 @@ const socketHandler = (io) => {
           socket.emit('error', { message: 'Message non trouvé' });
           return;
         }
+
+        const sender = await User.findById(message.sender._id);
+        if (sender && sender.socketId) {
+          io.to(sender.socketId).emit('message-received-confirmation', {
+            message_id,
+            received_by: socket.userId,
+          });
+        }
+      } catch (error) {
+        console.error('Erreur message-received:', error);
+        socket.emit('error', { message: 'Erreur lors du marquage' });
+      }
+    });
+
+    socket.on('message-read', async (data) => {
+      try {
+        const { message_id } = data;
+
+        const message = await Message.findById(message_id);
+
+        if (!message) {
+          socket.emit('error', { message: 'Message non trouvé' });
+          return;
+        }
+
+        if (message.recipient.toString() !== socket.userId.toString()) {
+          socket.emit('error', { message: 'Non autorisé' });
+          return;
+        }
+
+        message.status = 'read';
+        await message.save();
+        await message.populate('sender recipient', '-password');
 
         const sender = await User.findById(message.sender._id);
         if (sender && sender.socketId) {

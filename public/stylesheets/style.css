@@ -519,6 +519,22 @@ body {
 
 .message-status {
   font-size: 10px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-icon {
+  display: inline-block;
+  vertical-align: middle;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.message.sent .status-icon:not(.read) {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.status-icon.read {
+  color: #31a24c;
 }
 
 .edited-badge {
