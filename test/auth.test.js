@@ -6,7 +6,8 @@ const User = require('../src/models/User');
 
 describe("Tests d'Intégration - Authentification", () => {
   before(async () => {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/message-app-test');
+    const dbUri = process.env.MONGODB_TEST_URI || 'mongodb://localhost:27017/message-app-test';
+    await mongoose.connect(dbUri);
   });
 
   after(async () => {

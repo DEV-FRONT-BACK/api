@@ -45,7 +45,12 @@ app.use((err, req, res, next) => {
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    const dbUri =
+      process.env.NODE_ENV === 'test'
+        ? process.env.MONGODB_TEST_URI || 'mongodb://localhost:27017/message-app-test'
+        : process.env.MONGODB_URI;
+
+    await mongoose.connect(dbUri);
     console.log('✓ MongoDB connecté');
   } catch (error) {
     console.error('✗ Erreur connexion MongoDB:', error);

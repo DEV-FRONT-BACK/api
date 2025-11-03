@@ -5,7 +5,8 @@ const Message = require('../src/models/Message');
 
 describe('Tests Unitaires - Modèles', () => {
   before(async () => {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/message-app-test');
+    const dbUri = process.env.MONGODB_TEST_URI || 'mongodb://localhost:27017/message-app-test';
+    await mongoose.connect(dbUri);
   });
 
   after(async () => {

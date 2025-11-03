@@ -17,7 +17,8 @@ describe('Tests WebSocket', () => {
     this.timeout(10000);
 
     if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/message-app-test');
+      const dbUri = process.env.MONGODB_TEST_URI || 'mongodb://localhost:27017/message-app-test';
+      await mongoose.connect(dbUri);
     }
 
     httpServer = http.createServer(app);

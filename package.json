@@ -5,8 +5,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "nyc mocha test/**/*.test.js --timeout 10000 --exit",
-    "test:watch": "nodemon --exec 'npm test'"
+    "test": "NODE_ENV=test nyc mocha test/**/*.test.js --timeout 10000 --exit",
+    "test:watch": "NODE_ENV=test nodemon --exec 'npm test'"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
