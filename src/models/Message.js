@@ -1,9 +1,5 @@
 const mongoose = require('mongoose');
 
-/**
- * Schéma MongoDB pour le modèle Message
- * @description Gère les messages privés 1-to-1 entre utilisateurs
- */
 const messageSchema = new mongoose.Schema(
   {
     sender: {
@@ -40,16 +36,9 @@ const messageSchema = new mongoose.Schema(
   }
 );
 
-/**
- * Index composé pour optimiser les requêtes de conversation
- */
 messageSchema.index({ sender: 1, recipient: 1, createdAt: -1 });
 messageSchema.index({ recipient: 1, status: 1 });
 
-/**
- * Retourne les messages non supprimés
- * @returns {Object} Message formaté
- */
 messageSchema.methods.toJSON = function () {
   const obj = this.toObject();
   if (this.deleted) {

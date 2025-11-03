@@ -2,15 +2,10 @@ const Message = require('../models/Message');
 const User = require('../models/User');
 const mongoose = require('mongoose');
 
-/**
- * Controller pour créer un nouveau message
- * @route POST /api/messages
- */
 exports.createMessage = async (req, res) => {
   try {
     const { recipient_id, content } = req.body;
 
-    // Validation
     if (!recipient_id || !content) {
       return res.status(400).json({
         error: 'Destinataire et contenu requis',
@@ -23,7 +18,6 @@ exports.createMessage = async (req, res) => {
       });
     }
 
-    // Vérifier que le destinataire existe
     const recipient = await User.findById(recipient_id);
     if (!recipient) {
       return res.status(404).json({
@@ -31,7 +25,6 @@ exports.createMessage = async (req, res) => {
       });
     }
 
-    // Créer le message
     const message = new Message({
       sender: req.userId,
       recipient: recipient_id,
@@ -40,7 +33,6 @@ exports.createMessage = async (req, res) => {
 
     await message.save();
 
-    // Peupler les infos sender et recipient
     await message.populate('sender', '-password');
     await message.populate('recipient', '-password');
 
@@ -56,10 +48,6 @@ exports.createMessage = async (req, res) => {
   }
 };
 
-/**
- * Controller pour récupérer les messages avec un utilisateur
- * @route GET /api/messages/:user_id
- */
 exports.getMessagesWith = async (req, res) => {
   try {
     const { user_id } = req.params;
@@ -67,7 +55,6 @@ exports.getMessagesWith = async (req, res) => {
     const limit = parseInt(req.query.limit) || 30;
     const skip = (page - 1) * limit;
 
-    // Récupérer les messages entre les deux utilisateurs
     const messages = await Message.find({
       $or: [
         { sender: req.userId, recipient: user_id },
@@ -82,12 +69,11 @@ exports.getMessagesWith = async (req, res) => {
 
     const total = await Message.countDocuments({
       $or: [
-        { sender: req.userId, recipient: user_id },
-        { sender: user_id, recipient: req.userId },
+        { sender: req.userId, recipient: user_id, deleted: false },
+        { sender: user_id, recipient: req.userId, deleted: false },
       ],
     });
 
-    // Marquer les messages reçus comme lus
     await Message.updateMany(
       {
         sender: user_id,
@@ -114,15 +100,10 @@ exports.getMessagesWith = async (req, res) => {
   }
 };
 
-/**
- * Controller pour récupérer toutes les conversations
- * @route GET /api/conversations
- */
 exports.getConversations = async (req, res) => {
   try {
     const userId = req.userId;
 
-    // Agrégation pour obtenir les conversations avec lookup intégré
     const conversations = await Message.aggregate([
       {
         $match: {
@@ -220,7 +201,6 @@ exports.updateMessage = async (req, res) => {
       });
     }
 
-    // Vérifier que l'utilisateur est le propriétaire
     if (message.sender.toString() !== req.userId.toString()) {
       return res.status(403).json({
         error: 'Non autorisé',
@@ -245,10 +225,6 @@ exports.updateMessage = async (req, res) => {
   }
 };
 
-/**
- * Controller pour supprimer un message (soft delete)
- * @route DELETE /api/messages/:id
- */
 exports.deleteMessage = async (req, res) => {
   try {
     const { id } = req.params;
@@ -261,7 +237,6 @@ exports.deleteMessage = async (req, res) => {
       });
     }
 
-    // Vérifier que l'utilisateur est le propriétaire
     if (message.sender.toString() !== req.userId.toString()) {
       return res.status(403).json({
         error: 'Non autorisé',
@@ -283,10 +258,6 @@ exports.deleteMessage = async (req, res) => {
   }
 };
 
-/**
- * Controller pour marquer un message comme lu
- * @route POST /api/messages/:id/read
- */
 exports.markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
@@ -299,7 +270,6 @@ exports.markAsRead = async (req, res) => {
       });
     }
 
-    // Vérifier que l'utilisateur est le destinataire
     if (message.recipient.toString() !== req.userId.toString()) {
       return res.status(403).json({
         error: 'Non autorisé',

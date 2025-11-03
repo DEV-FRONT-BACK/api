@@ -1,10 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
-/**
- * Schéma MongoDB pour le modèle User
- * @description Gère les utilisateurs avec authentification, profil et statut
- */
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -55,10 +51,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-/**
- * Hash le mot de passe avant sauvegarde
- * @middleware pre-save
- */
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     return next();
@@ -73,19 +65,10 @@ userSchema.pre('save', async function (next) {
   }
 });
 
-/**
- * Compare un mot de passe avec le hash stocké
- * @param {string} candidatePassword - Mot de passe à vérifier
- * @returns {Promise<boolean>} True si valide
- */
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-/**
- * Retourne le profil public (sans mot de passe)
- * @returns {Object} Profil public
- */
 userSchema.methods.toPublicJSON = function () {
   return {
     _id: this._id,

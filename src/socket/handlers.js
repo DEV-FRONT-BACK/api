@@ -2,11 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Message = require('../models/Message');
 
-/**
- * Gère les connexions WebSocket et les événements en temps réel
- */
 const socketHandler = (io) => {
-  // Middleware d'authentification WebSocket
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
@@ -33,23 +29,18 @@ const socketHandler = (io) => {
   io.on('connection', async (socket) => {
     console.log(`Utilisateur connecté: ${socket.user.username} (${socket.userId})`);
 
-    // Mettre à jour le statut et socketId
     await User.findByIdAndUpdate(socket.userId, {
       status: 'online',
       socketId: socket.id,
       lastConnection: new Date(),
     });
 
-    // Notifier tous les utilisateurs qu'un user est online
     io.emit('user-status', {
       userId: socket.userId,
       status: 'online',
       username: socket.user.username,
     });
 
-    /**
-     * Événement: Envoi d'un message
-     */
     socket.on('send-message', async (data) => {
       try {
         const { recipient_id, content } = data;
@@ -59,7 +50,6 @@ const socketHandler = (io) => {
           return;
         }
 
-        // Créer le message en base de données
         const message = new Message({
           sender: socket.userId,
           recipient: recipient_id,
@@ -69,13 +59,11 @@ const socketHandler = (io) => {
         await message.save();
         await message.populate('sender recipient', '-password');
 
-        // Envoyer au destinataire s'il est connecté
         const recipient = await User.findById(recipient_id);
         if (recipient && recipient.socketId) {
           io.to(recipient.socketId).emit('new-message', message);
         }
 
-        // Confirmation à l'expéditeur
         socket.emit('message-sent', {
           success: true,
           message,
@@ -86,9 +74,6 @@ const socketHandler = (io) => {
       }
     });
 
-    /**
-     * Événement: Message lu
-     */
     socket.on('message-read', async (data) => {
       try {
         const { message_id } = data;
@@ -103,7 +88,6 @@ const socketHandler = (io) => {
           return;
         }
 
-        // Notifier l'expéditeur
         const sender = await User.findById(message.sender._id);
         if (sender && sender.socketId) {
           io.to(sender.socketId).emit('message-read-confirmation', {
@@ -117,9 +101,6 @@ const socketHandler = (io) => {
       }
     });
 
-    /**
-     * Événement: Utilisateur en train de taper
-     */
     socket.on('typing', async (data) => {
       try {
         const { recipient_id, isTyping } = data;
@@ -137,9 +118,6 @@ const socketHandler = (io) => {
       }
     });
 
-    /**
-     * Événement: Demande de statut utilisateur
-     */
     socket.on('get-user-status', async (data) => {
       try {
         const { user_id } = data;
@@ -158,20 +136,15 @@ const socketHandler = (io) => {
       }
     });
 
-    /**
-     * Événement: Déconnexion
-     */
     socket.on('disconnect', async () => {
       console.log(`Utilisateur déconnecté: ${socket.user.username} (${socket.userId})`);
 
-      // Mettre à jour le statut
       await User.findByIdAndUpdate(socket.userId, {
         status: 'offline',
         socketId: null,
         lastConnection: new Date(),
       });
 
-      // Notifier tous les utilisateurs
       io.emit('user-status', {
         userId: socket.userId,
         status: 'offline',

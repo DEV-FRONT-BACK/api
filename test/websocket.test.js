@@ -16,12 +16,10 @@ describe('Tests WebSocket', () => {
   before(async function () {
     this.timeout(10000);
 
-    // Connexion MongoDB seulement si pas déjà connecté
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/message-app-test');
     }
 
-    // Créer le serveur HTTP et Socket.io
     httpServer = http.createServer(app);
     ioServer = new Server(httpServer, {
       cors: {
@@ -50,7 +48,6 @@ describe('Tests WebSocket', () => {
       await new Promise((resolve) => httpServer.close(resolve));
     }
 
-    // Ne fermer la connexion MongoDB que si elle était ouverte par ce test
     if (mongoose.connection.readyState !== 0) {
       await User.deleteMany({});
       await Message.deleteMany({});
@@ -63,7 +60,6 @@ describe('Tests WebSocket', () => {
     await User.deleteMany({});
     await Message.deleteMany({});
 
-    // Créer deux utilisateurs
     const res1 = await request(app).post('/api/auth/register').send({
       email: 'user1@example.com',
       username: 'user1',
@@ -93,7 +89,6 @@ describe('Tests WebSocket', () => {
       clientSocket2 = null;
     }
 
-    // Attendre un peu pour que les sockets se ferment proprement
     setTimeout(done, 100);
   });
 
@@ -182,7 +177,7 @@ describe('Tests WebSocket', () => {
       const checkConnected = () => {
         connected++;
         if (connected === 2) {
-          setTimeout(done, 100); // Petit délai pour s'assurer que tout est prêt
+          setTimeout(done, 100);
         }
       };
 
@@ -288,7 +283,6 @@ describe('Tests WebSocket', () => {
       const checkConnected = () => {
         connected++;
         if (connected === 2) {
-          // Envoyer un message une fois les deux sockets connectés
           setTimeout(() => {
             clientSocket1.on('message-sent', (data) => {
               try {
