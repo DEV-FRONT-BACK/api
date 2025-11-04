@@ -78,7 +78,7 @@ const socketHandler = (io) => {
       try {
         const { message_id } = data;
 
-        const message = await Message.findByIdAndUpdate(message_id, { status: 'received' }, { new: true }).populate(
+        const message = await Message.findByIdAndUpdate(message_id, { receivedAt: new Date() }, { new: true }).populate(
           'sender recipient',
           '-password'
         );
@@ -93,6 +93,7 @@ const socketHandler = (io) => {
           io.to(sender.socketId).emit('message-received-confirmation', {
             message_id,
             received_by: socket.userId,
+            receivedAt: message.receivedAt,
           });
         }
       } catch (error) {
@@ -117,7 +118,8 @@ const socketHandler = (io) => {
           return;
         }
 
-        message.status = 'read';
+        message.receivedAt = message.receivedAt || new Date();
+        message.readAt = new Date();
         await message.save();
         await message.populate('sender recipient', '-password');
 
@@ -126,6 +128,7 @@ const socketHandler = (io) => {
           io.to(sender.socketId).emit('message-read-confirmation', {
             message_id,
             read_by: socket.userId,
+            readAt: message.readAt,
           });
         }
       } catch (error) {

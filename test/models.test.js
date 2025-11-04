@@ -168,7 +168,8 @@ describe('Tests Unitaires - Modèles', () => {
       expect(savedMessage.sender.toString()).to.equal(sender._id.toString());
       expect(savedMessage.recipient.toString()).to.equal(recipient._id.toString());
       expect(savedMessage.content).to.equal('Hello World');
-      expect(savedMessage.status).to.equal('sent');
+      expect(savedMessage.receivedAt).to.be.null;
+      expect(savedMessage.readAt).to.be.null;
       expect(savedMessage.edited).to.be.false;
       expect(savedMessage.deleted).to.be.false;
     });

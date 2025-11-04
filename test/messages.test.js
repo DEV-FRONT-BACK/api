@@ -50,7 +50,8 @@ describe("Tests d'Intégration - Messages", () => {
       expect(res.status).to.equal(201);
       expect(res.body).to.have.property('data');
       expect(res.body.data.content).to.equal('Hello User2!');
-      expect(res.body.data.status).to.equal('sent');
+      expect(res.body.data.receivedAt).to.be.null;
+      expect(res.body.data.readAt).to.be.null;
     });
 
     it('devrait rejeter sans authentification', async () => {
@@ -111,7 +112,7 @@ describe("Tests d'Intégration - Messages", () => {
         recipient: user1._id,
       });
 
-      expect(message.status).to.equal('read');
+      expect(message.readAt).to.not.be.null;
     });
 
     it('devrait paginer les résultats', async () => {
@@ -214,7 +215,7 @@ describe("Tests d'Intégration - Messages", () => {
       const res = await request(app).post(`/api/messages/${messageId}/read`).set('Authorization', `Bearer ${token2}`);
 
       expect(res.status).to.equal(200);
-      expect(res.body.data.status).to.equal('read');
+      expect(res.body.data.readAt).to.not.be.null;
     });
 
     it('devrait rejeter si non-destinataire', async () => {

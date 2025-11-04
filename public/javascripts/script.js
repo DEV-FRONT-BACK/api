@@ -475,12 +475,12 @@ function connectWebSocket() {
 
   socket.on('message-received-confirmation', (data) => {
     console.log('Message reçu confirmation:', data);
-    updateMessageStatus(data.message_id, 'received');
+    updateMessageStatus(data.message_id, data.receivedAt, null);
   });
 
   socket.on('message-read-confirmation', (data) => {
     console.log('Message lu confirmation:', data);
-    updateMessageStatus(data.message_id, 'read');
+    updateMessageStatus(data.message_id, data.receivedAt, data.readAt);
     loadConversations();
   });
 
@@ -708,10 +708,16 @@ function displayMessage(message) {
     minute: '2-digit',
   });
 
-  const statusIcon = getStatusIcon(message.status);
+  const statusIcon = getStatusIcon(message);
 
   const messageAge = Date.now() - new Date(message.createdAt).getTime();
   const canEdit = isSent && messageAge < 15 * 60 * 1000;
+
+  const menuItems = [];
+  if (canEdit) {
+    menuItems.push('<button class="menu-item edit-option">Modifier</button>');
+  }
+  menuItems.push('<button class="menu-item info-option">Informations</button>');
 
   div.innerHTML = `
     <div class="message-content">
@@ -719,25 +725,26 @@ function displayMessage(message) {
       <div class="message-meta">
         <span class="message-time">${time}</span>
         ${message.edited ? '<span class="edited-badge">modifié</span>' : ''}
-        ${isSent ? `<span class="message-status" data-status="${message.status}">${statusIcon}</span>` : ''}
+        ${isSent ? `<span class="message-status">${statusIcon}</span>` : ''}
       </div>
     </div>
     ${
-      canEdit
+      menuItems.length > 0
         ? `
       <button class="message-menu-btn" title="Options">⋮</button>
       <div class="message-menu" style="display: none;">
-        <button class="menu-item edit-option">Modifier</button>
+        ${menuItems.join('')}
       </div>
     `
         : ''
     }
   `;
 
-  if (canEdit) {
+  if (menuItems.length > 0) {
     const menuBtn = div.querySelector('.message-menu-btn');
     const menu = div.querySelector('.message-menu');
     const editOption = div.querySelector('.edit-option');
+    const infoOption = div.querySelector('.info-option');
 
     menuBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -748,10 +755,19 @@ function displayMessage(message) {
       menu.style.display = isVisible ? 'none' : 'block';
     });
 
-    editOption.addEventListener('click', () => {
-      menu.style.display = 'none';
-      editMessage(message._id, div);
-    });
+    if (editOption) {
+      editOption.addEventListener('click', () => {
+        menu.style.display = 'none';
+        editMessage(message._id, div);
+      });
+    }
+
+    if (infoOption) {
+      infoOption.addEventListener('click', () => {
+        menu.style.display = 'none';
+        showMessageInfo(message);
+      });
+    }
 
     document.addEventListener('click', () => {
       menu.style.display = 'none';
@@ -761,26 +777,23 @@ function displayMessage(message) {
   messagesContainer.appendChild(div);
 }
 
-function getStatusIcon(status) {
-  switch (status) {
-    case 'sent':
-      return '<svg class="status-icon" viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M5.5 12L1 7.5l1.5-1.5L5.5 9l7-7L14 3.5z"/></svg>';
-    case 'received':
-      return '<svg class="status-icon" viewBox="0 0 18 16" width="18" height="16"><path fill="currentColor" d="M6.5 12L2 7.5l1.5-1.5L6.5 9l7-7L15 3.5z"/><path fill="currentColor" d="M10.5 12L6 7.5l1.5-1.5L10.5 9l7-7L19 3.5z"/></svg>';
-    case 'read':
-      return '<svg class="status-icon read" viewBox="0 0 18 16" width="18" height="16"><path fill="#31a24c" d="M6.5 12L2 7.5l1.5-1.5L6.5 9l7-7L15 3.5z"/><path fill="#31a24c" d="M10.5 12L6 7.5l1.5-1.5L10.5 9l7-7L19 3.5z"/></svg>';
-    default:
-      return '';
+function getStatusIcon(message) {
+  if (message.readAt) {
+    return '<svg class="status-icon read" viewBox="0 0 18 16" width="18" height="16"><path fill="#31a24c" d="M6.5 12L2 7.5l1.5-1.5L6.5 9l7-7L15 3.5z"/><path fill="#31a24c" d="M10.5 12L6 7.5l1.5-1.5L10.5 9l7-7L19 3.5z"/></svg>';
+  } else if (message.receivedAt) {
+    return '<svg class="status-icon" viewBox="0 0 18 16" width="18" height="16"><path fill="currentColor" d="M6.5 12L2 7.5l1.5-1.5L6.5 9l7-7L15 3.5z"/><path fill="currentColor" d="M10.5 12L6 7.5l1.5-1.5L10.5 9l7-7L19 3.5z"/></svg>';
+  } else {
+    return '<svg class="status-icon" viewBox="0 0 16 16" width="16" height="16"><path fill="currentColor" d="M5.5 12L1 7.5l1.5-1.5L5.5 9l7-7L14 3.5z"/></svg>';
   }
 }
 
-function updateMessageStatus(messageId, status) {
+function updateMessageStatus(messageId, receivedAt, readAt) {
   const messageDiv = document.querySelector(`.message[data-message-id="${messageId}"]`);
   if (messageDiv) {
     const statusSpan = messageDiv.querySelector('.message-status');
     if (statusSpan) {
-      statusSpan.dataset.status = status;
-      statusSpan.innerHTML = getStatusIcon(status);
+      const message = { receivedAt, readAt };
+      statusSpan.innerHTML = getStatusIcon(message);
     }
   }
 }
@@ -863,6 +876,71 @@ function editMessage(messageId, messageDiv) {
       saveBtn.click();
     } else if (e.key === 'Escape') {
       cancelBtn.click();
+    }
+  });
+}
+
+function showMessageInfo(message) {
+  const sentAt = new Date(message.createdAt).toLocaleString('fr-FR', {
+    dateStyle: 'short',
+    timeStyle: 'medium',
+  });
+
+  let receivedAt = 'Non reçu';
+  if (message.receivedAt) {
+    receivedAt = new Date(message.receivedAt).toLocaleString('fr-FR', {
+      dateStyle: 'short',
+      timeStyle: 'medium',
+    });
+  }
+
+  let readAt = 'Non lu';
+  if (message.readAt) {
+    readAt = new Date(message.readAt).toLocaleString('fr-FR', {
+      dateStyle: 'short',
+      timeStyle: 'medium',
+    });
+  }
+
+  const infoHtml = `
+    <div class="message-info-overlay">
+      <div class="message-info-content">
+        <div class="message-info-header">
+          <h3>Informations du message</h3>
+          <button class="close-info-btn">&times;</button>
+        </div>
+        <div class="message-info-body">
+          <div class="info-row">
+            <span class="info-label">Envoyé :</span>
+            <span class="info-value">${sentAt}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Reçu :</span>
+            <span class="info-value">${receivedAt}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Lu :</span>
+            <span class="info-value">${readAt}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const overlay = document.createElement('div');
+  overlay.innerHTML = infoHtml;
+  document.body.appendChild(overlay.firstElementChild);
+
+  const closeBtn = document.querySelector('.close-info-btn');
+  const infoOverlay = document.querySelector('.message-info-overlay');
+
+  closeBtn.addEventListener('click', () => {
+    infoOverlay.remove();
+  });
+
+  infoOverlay.addEventListener('click', (e) => {
+    if (e.target === infoOverlay) {
+      infoOverlay.remove();
     }
   });
 }

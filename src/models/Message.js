@@ -17,10 +17,13 @@ const messageSchema = new mongoose.Schema(
       required: [true, 'Contenu requis'],
       maxlength: [5000, 'Maximum 5000 caractères'],
     },
-    status: {
-      type: String,
-      enum: ['sent', 'received', 'read'],
-      default: 'sent',
+    receivedAt: {
+      type: Date,
+      default: null,
+    },
+    readAt: {
+      type: Date,
+      default: null,
     },
     edited: {
       type: Boolean,
@@ -37,7 +40,7 @@ const messageSchema = new mongoose.Schema(
 );
 
 messageSchema.index({ sender: 1, recipient: 1, createdAt: -1 });
-messageSchema.index({ recipient: 1, status: 1 });
+messageSchema.index({ recipient: 1, readAt: 1 });
 
 messageSchema.methods.toJSON = function () {
   const obj = this.toObject();

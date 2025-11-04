@@ -74,13 +74,21 @@ exports.getMessagesWith = async (req, res) => {
       ],
     });
 
+    const now = new Date();
     await Message.updateMany(
       {
         sender: user_id,
         recipient: req.userId,
-        status: { $ne: 'read' },
+        readAt: null,
       },
-      { status: 'read' }
+      [
+        {
+          $set: {
+            receivedAt: { $ifNull: ['$receivedAt', now] },
+            readAt: now,
+          },
+        },
+      ]
     );
 
     res.status(200).json({
@@ -123,7 +131,7 @@ exports.getConversations = async (req, res) => {
             $sum: {
               $cond: [
                 {
-                  $and: [{ $eq: ['$recipient', new mongoose.Types.ObjectId(userId)] }, { $ne: ['$status', 'read'] }],
+                  $and: [{ $eq: ['$recipient', new mongoose.Types.ObjectId(userId)] }, { $eq: ['$readAt', null] }],
                 },
                 1,
                 0,
@@ -276,7 +284,8 @@ exports.markAsRead = async (req, res) => {
       });
     }
 
-    message.status = 'read';
+    message.receivedAt = message.receivedAt || new Date();
+    message.readAt = new Date();
     await message.save();
 
     res.status(200).json({
