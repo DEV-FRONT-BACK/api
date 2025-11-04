@@ -27,8 +27,6 @@ const socketHandler = (io) => {
   });
 
   io.on('connection', async (socket) => {
-    console.log(`Utilisateur connecté: ${socket.user.username} (${socket.userId})`);
-
     await User.findByIdAndUpdate(socket.userId, {
       status: 'online',
       socketId: socket.id,
@@ -223,8 +221,6 @@ const socketHandler = (io) => {
     });
 
     socket.on('disconnect', async () => {
-      console.log(`Utilisateur déconnecté: ${socket.user.username} (${socket.userId})`);
-
       await User.findByIdAndUpdate(socket.userId, {
         status: 'offline',
         socketId: null,

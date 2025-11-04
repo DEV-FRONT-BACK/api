@@ -170,11 +170,6 @@ exports.getConversations = async (req, res) => {
       },
     ]);
 
-    console.log('Conversations trouvées:', conversations.length);
-    if (conversations.length > 0) {
-      console.log('Exemple conversation:', JSON.stringify(conversations[0], null, 2));
-    }
-
     res.status(200).json({
       conversations,
     });

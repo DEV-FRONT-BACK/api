@@ -429,12 +429,10 @@ function connectWebSocket() {
   });
 
   socket.on('connect', () => {
-    console.log('WebSocket connecté');
     document.getElementById('current-user-status').classList.add('online');
   });
 
   socket.on('disconnect', () => {
-    console.log('WebSocket déconnecté');
     document.getElementById('current-user-status').classList.remove('online');
   });
 
@@ -446,11 +444,9 @@ function connectWebSocket() {
       displayMessage(message);
       scrollToBottom();
 
-      console.log('Émission message-received et message-read pour:', message._id);
       socket.emit('message-received', { message_id: message._id });
       socket.emit('message-read', { message_id: message._id });
     } else {
-      console.log('Émission message-received pour:', message._id);
       socket.emit('message-received', { message_id: message._id });
     }
 
@@ -474,12 +470,10 @@ function connectWebSocket() {
   });
 
   socket.on('message-received-confirmation', (data) => {
-    console.log('Message reçu confirmation:', data);
     updateMessageStatus(data.message_id, data.receivedAt, null);
   });
 
   socket.on('message-read-confirmation', (data) => {
-    console.log('Message lu confirmation:', data);
     updateMessageStatus(data.message_id, data.receivedAt, data.readAt);
     loadConversations();
   });
@@ -519,10 +513,8 @@ async function loadConversations() {
     const data = await response.json();
 
     if (response.ok) {
-      console.log('Conversations reçues:', data.conversations);
       displayConversations(data.conversations);
 
-      // Retourner les conversations pour permettre le chaînage
       return data.conversations;
     } else {
       console.error('Erreur API conversations:', data);
@@ -568,8 +560,6 @@ async function loadUsers() {
 function displayConversations(conversations) {
   conversationsList.innerHTML = '';
 
-  console.log('Affichage de', conversations.length, 'conversations');
-
   if (conversations.length === 0) {
     conversationsList.innerHTML =
       '<div style="padding: 20px; text-align: center; color: var(--text-secondary);">Aucune conversation<br><small>Cliquez sur "Afficher tous les utilisateurs" pour démarrer une discussion</small></div>';
@@ -577,7 +567,6 @@ function displayConversations(conversations) {
   }
 
   conversations.forEach((conv, index) => {
-    console.log(`Conversation ${index}:`, conv);
     const user = conv._id;
     const lastMessage = conv.lastMessage;
     const unreadCount = conv.unreadCount;
@@ -687,7 +676,6 @@ async function loadMessages(userId) {
         displayMessage(msg);
 
         if (msg.recipient._id === currentUser._id && msg.status !== 'read') {
-          console.log('Marquage comme lu du message:', msg._id);
           socket.emit('message-read', { message_id: msg._id });
         }
       });
