@@ -571,7 +571,7 @@ body {
 
 .message-menu {
   position: absolute;
-  top: 35px;
+  bottom: 60px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
