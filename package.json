@@ -28,6 +28,7 @@
     "mongoose": "^8.19.2",
     "morgan": "~1.9.1",
     "multer": "^2.0.2",
+    "sharp": "^0.34.5",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {

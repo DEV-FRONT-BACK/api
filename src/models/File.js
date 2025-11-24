@@ -58,6 +58,15 @@ const fileSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    thumbnail: {
+      path: String,
+      filename: String,
+      url: String,
+    },
+    dimensions: {
+      width: Number,
+      height: Number,
+    },
   },
   {
     timestamps: true,
@@ -73,6 +82,8 @@ fileSchema.methods.toPublicJSON = function () {
     mimetype: this.mimetype,
     size: this.size,
     url: this.url,
+    thumbnail: this.thumbnail,
+    dimensions: this.dimensions,
     uploaderId: this.uploaderId,
     createdAt: this.createdAt,
   };

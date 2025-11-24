@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { deleteFileWithThumbnail, processUploadedFiles } from '../middleware/imageProcessor.js';
 import File from '../models/File.js';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
@@ -34,14 +35,18 @@ export const createMessage = async (req, res) => {
 
     const savedFiles = [];
     if (req.files && req.files.length > 0) {
-      for (const uploadedFile of req.files) {
+      const processedFiles = await processUploadedFiles(req.files);
+
+      for (const processedFile of processedFiles) {
         const file = new File({
-          filename: uploadedFile.originalname,
-          storagePath: uploadedFile.path,
-          mimetype: uploadedFile.validatedMimetype || uploadedFile.mimetype,
-          size: uploadedFile.size,
+          filename: processedFile.filename,
+          storagePath: processedFile.path,
+          mimetype: processedFile.mimetype,
+          size: processedFile.size,
           uploaderId: req.userId,
-          url: `/uploads/${uploadedFile.filename}`,
+          url: processedFile.url,
+          thumbnail: processedFile.thumbnail || undefined,
+          dimensions: processedFile.dimensions || undefined,
         });
 
         await file.save();
@@ -259,7 +264,7 @@ export const deleteMessage = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const message = await Message.findById(id);
+    const message = await Message.findById(id).populate('files');
 
     if (!message) {
       return res.status(404).json({
@@ -273,8 +278,16 @@ export const deleteMessage = async (req, res) => {
       });
     }
 
+    if (message.files && message.files.length > 0) {
+      for (const file of message.files) {
+        await deleteFileWithThumbnail(file);
+        await File.findByIdAndDelete(file._id);
+      }
+    }
+
     message.deleted = true;
     message.content = '[Message supprimé]';
+    message.files = [];
     await message.save();
 
     res.status(200).json({
