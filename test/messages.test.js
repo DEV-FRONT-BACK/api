@@ -56,6 +56,16 @@ describe("Tests d'Intégration - Messages", () => {
 
       expect(res.status).to.equal(404);
     });
+
+    it('devrait rejeter sans contenu ni fichiers', async () => {
+      const client = await createLoggedClient(USER_1_EMAIL);
+      const res = await client.post('/api/messages').send({
+        recipient_id: USER_2_ID,
+      });
+
+      expect(res.status).to.equal(400);
+      expect(res.body.error).to.include('texte ou des fichiers');
+    });
   });
 
   describe('GET /api/messages/:user_id', () => {

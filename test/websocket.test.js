@@ -235,12 +235,29 @@ describe('Tests WebSocket', () => {
       });
     });
 
+    it('devrait rejeter un message sans contenu ni fichiers', function (done) {
+      this.timeout(5000);
+
+      clientSocket1.on('error', (error) => {
+        try {
+          expect(error.message).to.include('texte ou des fichiers');
+          done();
+        } catch (err) {
+          done(err);
+        }
+      });
+
+      clientSocket1.emit('send-message', {
+        recipient_id: user2._id,
+      });
+    });
+
     it('devrait rejeter un message sans destinataire', function (done) {
       this.timeout(5000);
 
       clientSocket1.on('error', (error) => {
         try {
-          expect(error.message).to.include('requis');
+          expect(error.message).to.include('Destinataire requis');
           done();
         } catch (err) {
           done(err);

@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "node src/server.js",
+    "start": "ENV_PATH=.env.production node src/server.js",
     "dev": "ENV_PATH=.env.local nodemon src/server.js",
     "test": "ENV_PATH=.env.test nyc mocha",
     "test:watch": "ENV_PATH=.env.test nodemon --exec 'npm test'",
@@ -21,11 +21,13 @@
     "debug": "~2.6.9",
     "dotenv": "^17.2.3",
     "express": "~4.16.1",
+    "file-type": "^21.1.1",
     "http-errors": "~1.6.3",
     "jade": "~1.11.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.2",
     "morgan": "~1.9.1",
+    "multer": "^2.0.2",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {

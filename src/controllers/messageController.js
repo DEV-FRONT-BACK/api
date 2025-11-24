@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import File from '../models/File.js';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
 
@@ -6,13 +7,19 @@ export const createMessage = async (req, res) => {
   try {
     const { recipient_id, content } = req.body;
 
-    if (!recipient_id || !content) {
+    if (!recipient_id) {
       return res.status(400).json({
-        error: 'Destinataire et contenu requis',
+        error: 'Destinataire requis',
       });
     }
 
-    if (content.length > 5000) {
+    if (!content && (!req.files || req.files.length === 0)) {
+      return res.status(400).json({
+        error: 'Le message doit contenir du texte ou des fichiers',
+      });
+    }
+
+    if (content && content.length > 5000) {
       return res.status(400).json({
         error: 'Maximum 5000 caractères',
       });
@@ -25,16 +32,35 @@ export const createMessage = async (req, res) => {
       });
     }
 
+    const savedFiles = [];
+    if (req.files && req.files.length > 0) {
+      for (const uploadedFile of req.files) {
+        const file = new File({
+          filename: uploadedFile.originalname,
+          storagePath: uploadedFile.path,
+          mimetype: uploadedFile.validatedMimetype || uploadedFile.mimetype,
+          size: uploadedFile.size,
+          uploaderId: req.userId,
+          url: `/uploads/${uploadedFile.filename}`,
+        });
+
+        await file.save();
+        savedFiles.push(file._id);
+      }
+    }
+
     const message = new Message({
       sender: req.userId,
       recipient: recipient_id,
-      content,
+      content: content || '',
+      files: savedFiles,
     });
 
     await message.save();
 
     await message.populate('sender', '-password');
     await message.populate('recipient', '-password');
+    await message.populate('files');
 
     res.status(201).json({
       message: 'Message créé',
@@ -63,6 +89,7 @@ export const getMessagesWith = async (req, res) => {
     })
       .populate('sender', '-password')
       .populate('recipient', '-password')
+      .populate('files')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config.ts';
+import File from '../models/File.js';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
 
@@ -42,21 +43,43 @@ const socketHandler = (io) => {
 
     socket.on('send-message', async (data) => {
       try {
-        const { recipient_id, content } = data;
+        const { recipient_id, content, fileIds } = data;
 
-        if (!recipient_id || !content) {
-          socket.emit('error', { message: 'Destinataire et contenu requis' });
+        if (!recipient_id) {
+          socket.emit('error', { message: 'Destinataire requis' });
           return;
+        }
+
+        if (!content && (!fileIds || fileIds.length === 0)) {
+          socket.emit('error', { message: 'Le message doit contenir du texte ou des fichiers' });
+          return;
+        }
+
+        let validatedFileIds = [];
+        if (fileIds && Array.isArray(fileIds) && fileIds.length > 0) {
+          const files = await File.find({
+            _id: { $in: fileIds },
+            uploaderId: socket.userId,
+          });
+
+          if (files.length !== fileIds.length) {
+            socket.emit('error', { message: 'Un ou plusieurs fichiers sont invalides' });
+            return;
+          }
+
+          validatedFileIds = files.map((f) => f._id);
         }
 
         const message = new Message({
           sender: socket.userId,
           recipient: recipient_id,
-          content,
+          content: content || '',
+          files: validatedFileIds,
         });
 
         await message.save();
         await message.populate('sender recipient', '-password');
+        await message.populate('files');
 
         const recipient = await User.findById(recipient_id);
         if (recipient && recipient.socketId) {

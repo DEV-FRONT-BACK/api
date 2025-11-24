@@ -14,9 +14,15 @@ const messageSchema = new mongoose.Schema(
     },
     content: {
       type: String,
-      required: [true, 'Contenu requis'],
       maxlength: [5000, 'Maximum 5000 caractères'],
+      default: '',
     },
+    files: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'File',
+      },
+    ],
     receivedAt: {
       type: Date,
       default: null,
@@ -41,6 +47,14 @@ const messageSchema = new mongoose.Schema(
 
 messageSchema.index({ sender: 1, recipient: 1, createdAt: -1 });
 messageSchema.index({ recipient: 1, readAt: 1 });
+
+messageSchema.pre('validate', function (next) {
+  if (!this.content && (!this.files || this.files.length === 0)) {
+    next(new Error('Le message doit contenir du texte ou des fichiers'));
+  } else {
+    next();
+  }
+});
 
 messageSchema.methods.toJSON = function () {
   const obj = this.toObject();

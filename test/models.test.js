@@ -183,6 +183,7 @@ describe('Tests Unitaires - Modèles', () => {
         throw new Error('Devrait échouer');
       } catch (error) {
         expect(error).to.exist;
+        expect(error.message).to.include('texte ou des fichiers');
       }
     });
 
