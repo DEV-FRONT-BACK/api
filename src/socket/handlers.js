@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config.ts';
+import Contact from '../models/Contact.js';
 import File from '../models/File.js';
 import Message from '../models/Message.js';
 import User from '../models/User.js';
@@ -50,6 +51,28 @@ const socketHandler = (io) => {
           return;
         }
 
+        const blockedByRecipient = await Contact.findOne({
+          userId: recipient_id,
+          contactId: socket.userId,
+          status: 'blocked',
+        });
+
+        if (blockedByRecipient) {
+          socket.emit('error', { message: 'Vous ne pouvez pas envoyer de message à cet utilisateur' });
+          return;
+        }
+
+        const blockedByUser = await Contact.findOne({
+          userId: socket.userId,
+          contactId: recipient_id,
+          status: 'blocked',
+        });
+
+        if (blockedByUser) {
+          socket.emit('error', { message: 'Vous avez bloqué cet utilisateur' });
+          return;
+        }
+
         if (!content && (!fileIds || fileIds.length === 0)) {
           socket.emit('error', { message: 'Le message doit contenir du texte ou des fichiers' });
           return;
@@ -93,6 +116,68 @@ const socketHandler = (io) => {
       } catch (error) {
         console.error('Erreur send-message:', error);
         socket.emit('error', { message: "Erreur lors de l'envoi" });
+      }
+    });
+
+    socket.on('contact-request', async (data) => {
+      try {
+        const { recipient_id } = data;
+
+        if (!recipient_id) {
+          socket.emit('error', { message: 'Destinataire requis' });
+          return;
+        }
+
+        const recipient = await User.findById(recipient_id);
+        if (recipient && recipient.socketId) {
+          io.to(recipient.socketId).emit('contact-request-received', {
+            from: socket.userId,
+            username: socket.user.username,
+            avatar: socket.user.avatar,
+          });
+        }
+
+        socket.emit('contact-request-sent', {
+          success: true,
+          recipient_id,
+        });
+      } catch (error) {
+        console.error('Erreur contact-request:', error);
+        socket.emit('error', { message: 'Erreur lors de la demande' });
+      }
+    });
+
+    socket.on('contact-accepted', async (data) => {
+      try {
+        const { contact_id } = data;
+
+        const contact = await User.findById(contact_id);
+        if (contact && contact.socketId) {
+          io.to(contact.socketId).emit('contact-accepted-notification', {
+            from: socket.userId,
+            username: socket.user.username,
+            avatar: socket.user.avatar,
+          });
+        }
+      } catch (error) {
+        console.error('Erreur contact-accepted:', error);
+        socket.emit('error', { message: "Erreur lors de l'acceptation" });
+      }
+    });
+
+    socket.on('contact-blocked', async (data) => {
+      try {
+        const { contact_id } = data;
+
+        const contact = await User.findById(contact_id);
+        if (contact && contact.socketId) {
+          io.to(contact.socketId).emit('contact-blocked-notification', {
+            by: socket.userId,
+          });
+        }
+      } catch (error) {
+        console.error('Erreur contact-blocked:', error);
+        socket.emit('error', { message: 'Erreur lors du blocage' });
       }
     });
 
