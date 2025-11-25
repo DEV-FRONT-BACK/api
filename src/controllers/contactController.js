@@ -1,4 +1,5 @@
 import Contact from '../models/Contact.js';
+import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 
 export const requestContact = async (req, res) => {
@@ -56,6 +57,15 @@ export const requestContact = async (req, res) => {
       .populate('userId', 'username email avatar')
       .populate('contactId', 'username email avatar');
 
+    await Notification.create({
+      userId: contactId,
+      type: 'contact_request',
+      relatedId: contact._id,
+      relatedModel: 'Contact',
+      fromUser: req.userId,
+      content: `${req.user.username} vous a envoyé une demande de contact`,
+    });
+
     res.status(201).json({
       message: 'Demande de contact envoyée',
       contact: populatedContact.toPublicJSON(),
@@ -108,6 +118,15 @@ export const acceptContact = async (req, res) => {
     const populatedContact = await Contact.findById(contact._id)
       .populate('userId', 'username email avatar')
       .populate('contactId', 'username email avatar');
+
+    await Notification.create({
+      userId: contact.contactId,
+      type: 'contact_accepted',
+      relatedId: contact._id,
+      relatedModel: 'Contact',
+      fromUser: req.userId,
+      content: `${req.user.username} a accepté votre demande de contact`,
+    });
 
     res.status(200).json({
       message: 'Contact accepté',

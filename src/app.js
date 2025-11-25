@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.js';
 import contactRoutes from './routes/contacts.js';
 import fileRoutes from './routes/files.js';
 import messageRoutes from './routes/messages.js';
+import notificationRoutes from './routes/notifications.js';
 import userRoutes from './routes/users.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,6 +28,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/contacts', contactRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));

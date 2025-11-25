@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { deleteFileWithThumbnail, processUploadedFiles } from '../middleware/imageProcessor.js';
 import File from '../models/File.js';
 import Message from '../models/Message.js';
+import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 
 export const createMessage = async (req, res) => {
@@ -66,6 +67,15 @@ export const createMessage = async (req, res) => {
     await message.populate('sender', '-password');
     await message.populate('recipient', '-password');
     await message.populate('files');
+
+    await Notification.create({
+      userId: recipient_id,
+      type: 'message',
+      relatedId: message._id,
+      relatedModel: 'Message',
+      fromUser: req.userId,
+      content: content ? content.substring(0, 100) : 'Fichier(s) envoyé(s)',
+    });
 
     res.status(201).json({
       message: 'Message créé',
