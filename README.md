@@ -1,10 +1,10 @@
-# Message App - Chat 1-to-1 en Temps Réel
+# WhatsApp Clone API - Messagerie Temps Réel
 
-Application de messagerie privée 1-to-1 avec API REST et WebSocket, développée avec Express.js, Socket.io, MongoDB et JWT.
+API REST et WebSocket pour application de messagerie instantanée avec gestion de contacts, notifications, et partage de fichiers. Développée avec Express.js, Socket.io, MongoDB et JWT.
 
 ## 🚀 Fonctionnalités
 
-### Authentification
+### Authentification & Profil
 
 - ✓ Inscription avec email, username, mot de passe
 - ✓ Connexion avec JWT (tokens valides 7 jours)
@@ -13,6 +13,7 @@ Application de messagerie privée 1-to-1 avec API REST et WebSocket, développé
 - ✓ Gestion des statuts online/offline
 - ✓ Changement de mot de passe sécurisé
 - ✓ Mise à jour du profil (username, email, avatar)
+- ✓ Recherche d'utilisateurs avec pagination
 
 ### Messagerie
 
@@ -21,30 +22,51 @@ Application de messagerie privée 1-to-1 avec API REST et WebSocket, développé
 - ✓ Historique de conversations
 - ✓ Statuts des messages avec timestamps (envoyé, reçu, lu)
 - ✓ Édition de messages (délai 15 minutes)
+- ✓ Suppression de messages (soft delete)
 - ✓ Pagination (30 messages/page)
 - ✓ Maximum 5000 caractères par message
-- ✓ Informations détaillées des messages (timestamps d'envoi/réception/lecture)
+- ✓ Recherche full-text dans les messages avec filtres
+- ✓ Compteur de messages non lus
 
-### Notifications temps réel
+### Gestion de Contacts
+
+- ✓ Système de demande/acceptation de contacts
+- ✓ Liste des contacts acceptés avec pagination
+- ✓ Demandes de contact en attente
+- ✓ Blocage/déblocage de contacts
+- ✓ Liste des contacts bloqués
+- ✓ Recherche de contacts avec filtres de statut
+- ✓ Protection: utilisateurs bloqués ne peuvent pas envoyer de messages
+
+### Notifications
+
+- ✓ Système de notifications centralisé
+- ✓ Notifications automatiques pour demandes de contact
+- ✓ Notifications automatiques pour acceptation de contact
+- ✓ Notifications automatiques pour nouveaux messages
+- ✓ Marquage individuel comme lu
+- ✓ Marquage global (tous les messages lus)
+- ✓ Filtrage par statut (lu/non lu)
+- ✓ Suppression de notifications
+- ✓ Pagination des notifications
+
+### Gestion de Fichiers
+
+- ✓ Upload de fichiers (images, documents, vidéos, audio)
+- ✓ Génération automatique de miniatures pour images
+- ✓ Streaming de fichiers avec mise en cache
+- ✓ Support MIME types variés
+- ✓ Optimisation Sharp pour images
+- ✓ Validation de taille et type de fichiers
+
+### Temps Réel (WebSocket)
 
 - ✓ Indicateur "en train d'écrire..."
 - ✓ Statut de présence (online/offline)
 - ✓ Notifications de lecture avec confirmations
 - ✓ Mise à jour automatique des conversations
 - ✓ Synchronisation des statuts via WebSocket
-
-### Interface utilisateur
-
-- ✓ Design moderne et responsive
-- ✓ Liste des conversations avec aperçu
-- ✓ Compteur de messages non lus
-- ✓ Recherche d'utilisateurs
-- ✓ Avatars personnalisables (auto-générés avec initiales)
-- ✓ Thème clair/sombre avec persistance localStorage
-- ✓ Menu contextuel sur messages (modifier, informations)
-- ✓ Icônes de statut visuels (✓ envoyé, ✓✓ reçu, ✓✓ vert lu)
-- ✓ Sidebar mobile avec menu glissant
-- ✓ Modales pour édition de profil et changement de mot de passe
+- ✓ Gestion des connexions multiples par utilisateur
 
 ## 📋 Prérequis
 
@@ -57,7 +79,7 @@ Application de messagerie privée 1-to-1 avec API REST et WebSocket, développé
 ```bash
 # Cloner le projet
 git clone <repository-url>
-cd message-app
+cd api
 
 # Installer les dépendances
 npm install
@@ -76,10 +98,10 @@ NODE_ENV=development
 PORT=3000
 
 # Production database
-MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/messenger?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/whatsapp?retryWrites=true&w=majority
 
 # Test database (utilisée automatiquement avec NODE_ENV=test)
-MONGODB_TEST_URI=mongodb+srv://user:password@cluster.mongodb.net/messenger-test?retryWrites=true&w=majority
+MONGODB_TEST_URI=mongodb+srv://user:password@cluster.mongodb.net/whatsapp-test?retryWrites=true&w=majority
 
 JWT_SECRET=votre_secret_jwt_tres_securise
 ```
@@ -106,6 +128,12 @@ npm test
 
 # Tests en mode watch
 npm run test:watch
+
+# Linting
+npm run lint
+
+# Format code
+npm run format
 ```
 
 Le serveur démarre sur `http://localhost:3000`
@@ -326,12 +354,200 @@ Rechercher des utilisateurs
 
 **Query params:**
 
-- `q` (requis, minimum 2 caractères)
+- `query` (requis, minimum 2 caractères)
 
 **Exemple:**
 
+```http
+GET /api/users/search?query=john
 ```
-GET /api/users/search?q=john
+
+### Contacts
+
+#### POST /api/contacts/request
+
+Envoyer une demande de contact
+
+**Headers:**
+
+```http
+Authorization: Bearer <token>
+```
+
+**Body:**
+
+```json
+{
+  "contactId": "64a1b2c3d4e5f6g7h8i9j0k1"
+}
+```
+
+**Réponse (201):**
+
+```json
+{
+  "message": "Demande de contact envoyée",
+  "contact": {
+    "_id": "64a1b2c3d4e5f6g7h8i9j0k3",
+    "userId": "64a1b2c3d4e5f6g7h8i9j0k2",
+    "contactId": "64a1b2c3d4e5f6g7h8i9j0k1",
+    "status": "pending"
+  }
+}
+```
+
+#### PUT /api/contacts/:id/accept
+
+Accepter une demande de contact
+
+**Réponse (200):**
+
+```json
+{
+  "message": "Contact accepté",
+  "contact": {
+    /* ... */
+  }
+}
+```
+
+#### DELETE /api/contacts/:id
+
+Supprimer un contact
+
+**Réponse (200):**
+
+```json
+{
+  "message": "Contact supprimé"
+}
+```
+
+#### GET /api/contacts
+
+Lister tous les contacts acceptés
+
+**Query params:**
+
+- `page` (optionnel, défaut: 1)
+- `limit` (optionnel, défaut: 50)
+
+**Réponse (200):**
+
+```json
+{
+  "contacts": [
+    {
+      "id": "64a1b2c3d4e5f6g7h8i9j0k3",
+      "contact": {
+        "_id": "64a1b2c3d4e5f6g7h8i9j0k1",
+        "username": "johndoe",
+        "email": "john@example.com",
+        "avatar": "https://example.com/avatar.jpg",
+        "status": "online"
+      },
+      "status": "accepted",
+      "acceptedAt": "2025-11-03T10:00:00.000Z"
+    }
+  ],
+  "total": 42
+}
+```
+
+#### GET /api/contacts/pending
+
+Lister les demandes de contact en attente
+
+**Réponse (200):**
+
+```json
+{
+  "contacts": [
+    /* ... */
+  ]
+}
+```
+
+#### POST /api/contacts/:id/block
+
+Bloquer un contact
+
+**Réponse (200):**
+
+```json
+{
+  "message": "Contact bloqué",
+  "contact": {
+    /* ... */
+  }
+}
+```
+
+#### POST /api/contacts/:id/unblock
+
+Débloquer un contact
+
+**Réponse (200):**
+
+```json
+{
+  "message": "Contact débloqué",
+  "contact": {
+    /* ... */
+  }
+}
+```
+
+#### GET /api/contacts/blocked
+
+Lister tous les contacts bloqués
+
+**Réponse (200):**
+
+```json
+{
+  "contacts": [
+    {
+      "id": "64a1b2c3d4e5f6g7h8i9j0k3",
+      "contact": {
+        /* ... */
+      },
+      "status": "blocked",
+      "blockedAt": "2025-11-03T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+#### GET /api/contacts/search
+
+Rechercher dans ses contacts
+
+**Query params:**
+
+- `query` (requis, minimum 2 caractères)
+- `status` (optionnel: pending, accepted, blocked)
+- `page` (optionnel, défaut: 1)
+- `limit` (optionnel, défaut: 50)
+
+**Exemple:**
+
+```http
+GET /api/contacts/search?query=john&status=accepted
+```
+
+**Réponse (200):**
+
+```json
+{
+  "contacts": [
+    /* ... */
+  ],
+  "total": 5,
+  "page": 1,
+  "limit": 50,
+  "pages": 1
+}
 ```
 
 ### Messages
@@ -446,6 +662,187 @@ Supprimer un message (soft delete, propriétaire seulement)
 #### POST /api/messages/:id/read
 
 Marquer un message comme lu (destinataire seulement)
+
+**Réponse (200):**
+
+```json
+{
+  "message": "Message marqué comme lu",
+  "data": {
+    /* ... */
+  }
+}
+```
+
+#### GET /api/messages/search
+
+Rechercher dans les messages
+
+**Query params:**
+
+- `query` (requis, minimum 2 caractères)
+- `user_id` (optionnel, filtrer par conversation)
+- `startDate` (optionnel, date ISO format)
+- `endDate` (optionnel, date ISO format)
+- `page` (optionnel, défaut: 1)
+- `limit` (optionnel, défaut: 30)
+
+**Exemple:**
+
+```http
+GET /api/messages/search?query=hello&user_id=64a1b2c3d4e5f6g7h8i9j0k1
+```
+
+**Réponse (200):**
+
+```json
+{
+  "messages": [
+    /* ... */
+  ],
+  "total": 15,
+  "page": 1,
+  "limit": 30,
+  "pages": 1
+}
+```
+
+### Notifications
+
+#### GET /api/notifications
+
+Lister toutes les notifications
+
+**Headers:**
+
+```http
+Authorization: Bearer <token>
+```
+
+**Query params:**
+
+- `unread` (optionnel, boolean)
+- `page` (optionnel, défaut: 1)
+- `limit` (optionnel, défaut: 20)
+
+**Réponse (200):**
+
+```json
+{
+  "notifications": [
+    {
+      "_id": "64a1b2c3d4e5f6g7h8i9j0k5",
+      "userId": "64a1b2c3d4e5f6g7h8i9j0k1",
+      "type": "contact_request",
+      "message": "johndoe vous a envoyé une demande de contact",
+      "relatedUser": {
+        "_id": "64a1b2c3d4e5f6g7h8i9j0k2",
+        "username": "johndoe",
+        "avatar": "https://example.com/avatar.jpg"
+      },
+      "read": false,
+      "createdAt": "2025-11-03T10:00:00.000Z"
+    }
+  ],
+  "total": 10,
+  "unread": 5
+}
+```
+
+#### PUT /api/notifications/:id/read
+
+Marquer une notification comme lue
+
+**Réponse (200):**
+
+```json
+{
+  "message": "Notification marquée comme lue",
+  "notification": {
+    /* ... */
+  }
+}
+```
+
+#### PUT /api/notifications/read-all
+
+Marquer toutes les notifications comme lues
+
+**Réponse (200):**
+
+```json
+{
+  "message": "Toutes les notifications ont été marquées comme lues",
+  "modifiedCount": 5
+}
+```
+
+#### DELETE /api/notifications/:id
+
+Supprimer une notification
+
+**Réponse (200):**
+
+```json
+{
+  "message": "Notification supprimée"
+}
+```
+
+### Fichiers
+
+#### POST /api/messages
+
+Envoi de fichiers avec message (multipart/form-data)
+
+**Headers:**
+
+```http
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+```
+
+**Form Data:**
+
+- `recipient_id` (string, requis)
+- `content` (string, optionnel)
+- `files` (files, maximum 10 fichiers)
+
+**Réponse (201):**
+
+```json
+{
+  "message": "Message créé",
+  "data": {
+    "_id": "64a1b2c3d4e5f6g7h8i9j0k2",
+    "content": "Voici mes photos",
+    "files": [
+      {
+        "_id": "64a1b2c3d4e5f6g7h8i9j0k7",
+        "filename": "photo.jpg",
+        "mimetype": "image/jpeg",
+        "size": 245678,
+        "path": "/uploads/files/abc123.jpg",
+        "thumbnail": "/uploads/thumbnails/abc123_thumb.jpg"
+      }
+    ]
+  }
+}
+```
+
+#### GET /api/files/:id
+
+Télécharger un fichier
+
+**Headers:**
+
+```http
+Authorization: Bearer <token>
+```
+
+**Réponse (200):**
+
+Stream du fichier avec headers appropriés (Content-Type, Cache-Control, ETag)
 
 ## 🔌 Événements WebSocket
 
@@ -620,39 +1017,63 @@ socket.on('error', (error) => {
 
 ## 🗂️ Structure du Projet
 
-```
-message-app/
+```text
+api/
 ├── src/
 │   ├── models/
-│   │   ├── User.js              # Modèle utilisateur (bcrypt, toPublicJSON)
-│   │   └── Message.js           # Modèle message (timestamps: createdAt, receivedAt, readAt)
+│   │   ├── User.js              # Modèle utilisateur (bcrypt, indexes)
+│   │   ├── Message.js           # Modèle message (timestamps, text search index)
+│   │   ├── Contact.js           # Modèle contact (demandes, blocage)
+│   │   ├── Notification.js      # Modèle notification
+│   │   └── File.js              # Modèle fichier
 │   ├── routes/
 │   │   ├── auth.js              # Routes authentification
 │   │   ├── users.js             # Routes utilisateurs
-│   │   └── messages.js          # Routes messages
+│   │   ├── messages.js          # Routes messages
+│   │   ├── contacts.js          # Routes contacts
+│   │   ├── notifications.js     # Routes notifications
+│   │   └── files.js             # Routes fichiers
 │   ├── controllers/
 │   │   ├── authController.js    # Logique authentification
-│   │   ├── userController.js    # Logique utilisateurs (profil, mot de passe)
-│   │   └── messageController.js # Logique messages (CRUD, conversations)
+│   │   ├── userController.js    # Logique utilisateurs
+│   │   ├── messageController.js # Logique messages (CRUD, search)
+│   │   ├── contactController.js # Logique contacts (blocage, recherche)
+│   │   ├── notificationController.js # Logique notifications
+│   │   └── fileController.js    # Logique fichiers (streaming)
 │   ├── middleware/
 │   │   └── auth.js              # Middleware JWT
 │   ├── socket/
-│   │   └── handlers.js          # Handlers WebSocket (messages, statuts, édition)
+│   │   └── handlers.js          # Handlers WebSocket
+│   ├── utils/
+│   │   └── fileUtils.js         # Utilitaires fichiers (Sharp, thumbnails)
 │   ├── app.js                   # Configuration Express + MongoDB
+│   ├── config.js                # Configuration centralisée
 │   └── server.js                # Serveur HTTP + Socket.io
 ├── test/
+│   ├── setup.js                 # Configuration tests
 │   ├── models.test.js           # Tests modèles
 │   ├── auth.test.js             # Tests authentification
 │   ├── messages.test.js         # Tests messages
-│   └── websocket.test.js        # Tests WebSocket
+│   ├── contacts.test.js         # Tests contacts
+│   ├── notifications.test.js    # Tests notifications
+│   ├── websocket.test.js        # Tests WebSocket
+│   └── helpers/
+│       ├── client.ts            # Helper clients de test
+│       ├── user.ts              # Fixtures utilisateurs
+│       └── message.ts           # Fixtures messages
+├── uploads/
+│   ├── files/                   # Fichiers uploadés
+│   └── thumbnails/              # Miniatures générées
 ├── public/
-│   ├── index.html               # Interface utilisateur (SPA)
+│   ├── index.html               # Interface utilisateur
 │   ├── stylesheets/
-│   │   └── style.css            # Styles (CSS custom properties, thème clair/sombre)
+│   │   └── style.css            # Styles
 │   └── javascripts/
-│       └── script.js            # Logique frontend (WebSocket, DOM, localStorage)
+│       └── script.js            # Logique frontend
 ├── .env                         # Variables d'environnement
 ├── .env.example                 # Exemple de configuration
+├── .eslintrc.json              # Configuration ESLint
+├── .prettierrc                  # Configuration Prettier
 ├── .gitignore
 ├── package.json
 └── README.md
@@ -660,13 +1081,28 @@ message-app/
 
 ## 🧪 Tests
 
-Le projet inclut une suite de tests complète avec **49 tests** qui passent :
+Le projet inclut une suite de tests complète avec **87 tests** qui passent :
 
-- **Tests unitaires** : Modèles User et Message (validation, méthodes)
-- **Tests d'intégration** : Routes API (auth, users, messages, profil, mot de passe)
-- **Tests WebSocket** : Connexion, envoi de messages, édition, notifications temps réel
+### Tests Unitaires (11 tests)
 
-Lancer les tests :
+- **Modèle User** : Validation, hashage bcrypt, méthodes (7 tests)
+- **Modèle Message** : Validation, soft delete (4 tests)
+
+### Tests d'Intégration (63 tests)
+
+- **Authentification** : Register, login, logout, profil (11 tests)
+- **Messages** : CRUD, conversations, pagination, recherche full-text (18 tests)
+- **Contacts** : Demandes, acceptation, blocage, recherche (13 tests)
+- **Notifications** : Création automatique, marquage lu, suppression (11 tests)
+- **Fichiers** : Upload, téléchargement, validation (10 tests)
+
+### Tests WebSocket (13 tests)
+
+- **Connexion** : Authentification, statuts (4 tests)
+- **Messages temps réel** : Envoi, réception, confirmations (5 tests)
+- **Notifications** : Lecture, frappe, présence (4 tests)
+
+### Lancer les tests
 
 ```bash
 # Tous les tests avec coverage
@@ -674,59 +1110,35 @@ npm test
 
 # Tests en mode watch
 npm run test:watch
+
+# Linting et formatting
+npm run lint
+npm run format
 ```
 
-**Coverage actuel : ~72%**
+### Coverage
 
-Les tests utilisent automatiquement une base de données séparée (`MONGODB_TEST_URI`) pour ne pas affecter les données de production.
+Les tests utilisent automatiquement une base de données séparée (`MONGODB_TEST_URI`) pour ne pas affecter les données de production. NYC génère un rapport de couverture après chaque exécution.
 
 ## 🔒 Sécurité
 
 - ✓ Mots de passe hashés avec bcrypt (salt rounds: 10)
 - ✓ Authentification JWT avec expiration (7 jours)
-- ✓ Validation des entrées utilisateur
-- ✓ Protection CORS
+- ✓ Validation des entrées utilisateur (email, longueurs, types)
+- ✓ Protection CORS configurée
 - ✓ Messages privés isolés (1-to-1 uniquement)
 - ✓ Vérification des autorisations (propriétaire pour edit/delete)
 - ✓ Vérification du mot de passe actuel avant changement
 - ✓ Délai d'édition de 15 minutes pour les messages
 - ✓ Base de données de test séparée
+- ✓ Validation MIME types pour fichiers
+- ✓ Limitation taille fichiers (5MB par défaut)
+- ✓ Protection contre les utilisateurs bloqués
+- ✓ Soft delete pour messages et contacts
+- ✓ Validation des IDs MongoDB
+- ✓ ETag et Cache-Control pour fichiers
 
-## 📱 Interface Utilisateur
-
-### Pages
-
-1. **Authentification** : Login/Register avec validation
-2. **Chat** :
-   - Sidebar avec liste des conversations
-   - Zone de recherche utilisateurs
-   - Chat 1-to-1 avec historique
-   - Indicateur de frappe en temps réel
-   - Statuts de lecture visuels (✓, ✓✓, ✓✓ vert)
-   - Présence en temps réel (online/offline)
-
-### Fonctionnalités UI
-
-- Design responsive (mobile-friendly avec sidebar glissante)
-- Avatars auto-générés avec initiales (ui-avatars.com)
-- Scroll automatique vers les nouveaux messages
-- Compteur de messages non lus avec badge
-- Timestamps des messages formatés
-- Badge "modifié" sur messages édités
-- Menu contextuel (3 points) sur chaque message :
-  - **Modifier** (uniquement si < 15 minutes)
-  - **Informations** (timestamps d'envoi/réception/lecture)
-- Thème clair/sombre avec persistance localStorage
-- Modales pour édition de profil et changement de mot de passe
-- Menu header avec icônes (🌙/☀️ thème, 🔒 mot de passe, 🚪 déconnexion)
-
-### Icônes de Statut
-
-- **✓ (1 check)** : Message envoyé
-- **✓✓ gris (2 checks gris)** : Message reçu par le destinataire
-- **✓✓ vert (2 checks verts)** : Message lu par le destinataire
-
-## 🎯 Critères de Réussite (/20)
+## 🎯 Améliorations Implémentées
 
 | Catégorie                          | Points | Statut |
 | ---------------------------------- | ------ | ------ |
@@ -757,54 +1169,76 @@ Les tests utilisent automatiquement une base de données séparée (`MONGODB_TES
 
 - **Express.js 4.16.1** : Framework web
 - **Socket.io 4.8.1** : Communication temps réel WebSocket
-- **MongoDB + Mongoose 8.19.2** : Base de données NoSQL
+- **MongoDB + Mongoose 8.19.2** : Base de données NoSQL avec indexes
 - **JWT (jsonwebtoken 9.0.2)** : Authentification par tokens
 - **Bcrypt 6.0.0** : Hashage de mots de passe
+- **Multer 2.0.2** : Upload de fichiers multipart/form-data
+- **Sharp 0.34.5** : Traitement d'images et génération de miniatures
 - **CORS 2.8.5** : Gestion des requêtes cross-origin
 - **Dotenv 17.2.3** : Variables d'environnement
+- **File-type 21.1.1** : Détection MIME types
 
-### Frontend
+### Qualité de Code
 
-- **HTML5/CSS3** : Structure et styles
-- **JavaScript Vanilla** : Logique client
-- **Socket.io-client 4.8.1** : Client WebSocket
-- **CSS Custom Properties** : Système de thèmes
+- **ESLint 9.39.1** : Linting JavaScript
+- **Prettier 3.6.2** : Formatage de code
+- **Husky 9.1.7** : Git hooks
+- **Lint-staged 16.2.7** : Pre-commit checks
+- **Commitlint 20.1.0** : Validation messages de commit
 
 ### Tests
 
 - **Mocha 11.7.4** : Framework de tests
 - **Chai 6.2.0** : Assertions
 - **Supertest 7.1.4** : Tests HTTP
-- **NYC 17.1.0** : Coverage
+- **Socket.io-client 4.8.1** : Tests WebSocket
+- **NYC 17.1.0** : Coverage de code
 
-## 📝 Notes de Développement
+## 📝 Architecture & Décisions Techniques
 
-### Gestion des Statuts de Messages
+### MongoDB Indexes
 
-Le système utilise des timestamps plutôt qu'un enum de statuts :
+Indexes créés pour optimiser les performances :
 
-- `createdAt` : Timestamp de création (= envoyé)
-- `receivedAt` : Timestamp de réception par le destinataire
-- `readAt` : Timestamp de lecture par le destinataire
+- **Message.content** : Text index pour recherche full-text
+- **Message.createdAt** : Index pour filtres de date
+- **User.username, User.email** : Compound text index pour recherche
+- **User.email, User.username** : Index unique pour validation
+- **Contact.userId, Contact.contactId** : Index pour requêtes de contacts
 
-Cette approche permet un suivi précis et des informations détaillées pour l'utilisateur.
+### Gestion des Fichiers
 
-### WebSocket et Confirmations
+- Upload via Multer en mémoire (buffer)
+- Validation MIME type avec file-type
+- Génération miniatures automatique (300x300px) pour images
+- Streaming optimisé avec mise en cache ETag
+- Stockage dans `/uploads` avec structure organisée
 
-Chaque action importante génère une confirmation :
+### WebSocket vs REST
 
-- `message-sent` → Confirme l'envoi au serveur
-- `message-received` → Le destinataire confirme la réception
-- `message-received-confirmation` → L'expéditeur est notifié de la réception
-- `message-read` → Le destinataire confirme la lecture
-- `message-read-confirmation` → L'expéditeur est notifié de la lecture
+- **REST** : CRUD operations, recherche, pagination
+- **WebSocket** : Temps réel (messages, notifications, présence, frappe)
+- Authentification JWT pour les deux canaux
+- Confirmations bidirectionnelles pour garantir la livraison
 
-### Édition de Messages
+### Soft Delete
 
-- Délai de 15 minutes après l'envoi
-- Validation côté client ET serveur
-- Badge "modifié" visible pour les deux utilisateurs
-- Synchronisation temps réel via WebSocket
+- Messages supprimés : `deleted: true`, contenu masqué
+- Préserve l'historique et les références
+- Fichiers supprimés du système de fichiers
+
+## 🔄 Évolutions Futures
+
+- [ ] Groupes de discussion (création, gestion membres, permissions)
+- [ ] Messages vocaux avec enregistrement audio
+- [ ] Appels vidéo/audio WebRTC
+- [ ] Encryption end-to-end des messages
+- [ ] Stories/statuts temporaires
+- [ ] Réactions aux messages (emojis)
+- [ ] Réponses/citations de messages
+- [ ] Backup/export de conversations
+- [ ] Mode dark automatique selon l'heure
+- [ ] Notifications push (PWA)
 
 ## 📄 Licence
 
@@ -812,8 +1246,8 @@ MIT
 
 ## 👤 Auteur
 
-Développé pour le TP Chat 1-to-1 | Express.js + Socket.io + MongoDB + JWT
+Développé avec Express.js + Socket.io + MongoDB + JWT
 
 ---
 
-**Note** : Ce projet implémente tous les critères requis (/20) ainsi que de nombreuses fonctionnalités avancées pour une expérience utilisateur moderne et complète.
+**Stack Technique** : Node.js · Express · Socket.io · MongoDB · Mongoose · JWT · Bcrypt · Multer · Sharp · Mocha · Chai
