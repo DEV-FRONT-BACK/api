@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { DB_URI } from './config.ts';
 
 import authRoutes from './routes/auth.js';
+import fileRoutes from './routes/files.js';
 import messageRoutes from './routes/messages.js';
 import userRoutes from './routes/users.js';
 
@@ -23,6 +24,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/files', fileRoutes);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
