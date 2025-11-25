@@ -341,3 +341,66 @@ export const getBlockedContacts = async (req, res) => {
     });
   }
 };
+
+export const searchContacts = async (req, res) => {
+  try {
+    const { query, status, page = 1, limit = 50 } = req.query;
+
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({
+        error: 'La recherche doit contenir au moins 2 caractères',
+      });
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const contactQuery = { userId: req.userId };
+    if (status) {
+      contactQuery.status = status;
+    }
+
+    const userContacts = await Contact.find(contactQuery).select('contactId');
+    const contactIds = userContacts.map((c) => c.contactId);
+
+    const searchQuery = {
+      _id: { $in: contactIds },
+      $or: [{ username: { $regex: query, $options: 'i' } }, { email: { $regex: query, $options: 'i' } }],
+    };
+
+    const users = await User.find(searchQuery)
+      .select('username email avatar status lastConnection')
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await User.countDocuments(searchQuery);
+
+    const results = await Promise.all(
+      users.map(async (user) => {
+        const contact = await Contact.findOne({
+          userId: req.userId,
+          contactId: user._id,
+        });
+
+        return {
+          id: contact._id,
+          contact: user,
+          status: contact.status,
+          createdAt: contact.createdAt,
+        };
+      })
+    );
+
+    res.status(200).json({
+      contacts: results,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      pages: Math.ceil(total / parseInt(limit)),
+    });
+  } catch (error) {
+    console.error('Erreur searchContacts:', error);
+    res.status(500).json({
+      error: 'Erreur serveur',
+    });
+  }
+};

@@ -8,6 +8,8 @@ const router = express.Router();
 
 router.get('/conversations', authMiddleware, messageController.getConversations);
 
+router.get('/search', authMiddleware, messageController.searchMessages);
+
 router.post(
   '/',
   authMiddleware,

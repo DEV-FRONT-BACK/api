@@ -344,3 +344,63 @@ export const markAsRead = async (req, res) => {
     });
   }
 };
+
+export const searchMessages = async (req, res) => {
+  try {
+    const { query, user_id, page = 1, limit = 30, startDate, endDate } = req.query;
+
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({
+        error: 'La recherche doit contenir au moins 2 caractères',
+      });
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const searchQuery = {
+      $or: [{ sender: req.userId }, { recipient: req.userId }],
+      deleted: false,
+      $text: { $search: query },
+    };
+
+    if (user_id) {
+      searchQuery.$or = [
+        { sender: req.userId, recipient: user_id },
+        { sender: user_id, recipient: req.userId },
+      ];
+    }
+
+    if (startDate || endDate) {
+      searchQuery.createdAt = {};
+      if (startDate) {
+        searchQuery.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        searchQuery.createdAt.$lte = new Date(endDate);
+      }
+    }
+
+    const messages = await Message.find(searchQuery)
+      .populate('sender', 'username email avatar')
+      .populate('recipient', 'username email avatar')
+      .populate('files')
+      .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await Message.countDocuments(searchQuery);
+
+    res.status(200).json({
+      messages,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      pages: Math.ceil(total / parseInt(limit)),
+    });
+  } catch (error) {
+    console.error('Erreur searchMessages:', error);
+    res.status(500).json({
+      error: 'Erreur serveur',
+    });
+  }
+};

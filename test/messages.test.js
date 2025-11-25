@@ -169,4 +169,65 @@ describe("Tests d'Intégration - Messages", () => {
       expect(res.status).to.equal(403);
     });
   });
+
+  describe('GET /api/messages/search', () => {
+    it('devrait rechercher des messages par texte', async () => {
+      const client = await createLoggedClient(USER_1_EMAIL);
+      const res = await client.get('/api/messages/search?query=Hello');
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.property('messages');
+      expect(res.body.messages).to.be.an('array');
+      expect(res.body).to.have.property('total');
+    });
+
+    it('devrait rejeter une requête trop courte', async () => {
+      const client = await createLoggedClient(USER_1_EMAIL);
+      const res = await client.get('/api/messages/search?query=a');
+
+      expect(res.status).to.equal(400);
+      expect(res.body.error).to.include('2 caractères');
+    });
+
+    it('devrait filtrer par utilisateur', async () => {
+      const client = await createLoggedClient(USER_1_EMAIL);
+      const res = await client.get(`/api/messages/search?query=Hello&user_id=${USER_2_ID}`);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.messages).to.be.an('array');
+      if (res.body.messages.length > 0) {
+        res.body.messages.forEach((msg) => {
+          const isSenderOrRecipient = msg.sender._id === USER_2_ID || msg.recipient._id === USER_2_ID;
+          expect(isSenderOrRecipient).to.be.true;
+        });
+      }
+    });
+
+    it('devrait filtrer par dates', async () => {
+      const client = await createLoggedClient(USER_1_EMAIL);
+      const startDate = new Date('2024-01-01').toISOString();
+      const endDate = new Date().toISOString();
+      const res = await client.get(`/api/messages/search?query=Hello&startDate=${startDate}&endDate=${endDate}`);
+
+      expect(res.status).to.equal(200);
+      expect(res.body.messages).to.be.an('array');
+    });
+
+    it('devrait paginer les résultats', async () => {
+      const client = await createLoggedClient(USER_1_EMAIL);
+      const res = await client.get('/api/messages/search?query=Hello&page=1&limit=2');
+
+      expect(res.status).to.equal(200);
+      expect(res.body.messages).to.be.an('array');
+      expect(res.body.messages.length).to.be.at.most(2);
+      expect(res.body).to.have.property('page', 1);
+      expect(res.body).to.have.property('limit', 2);
+    });
+
+    it('devrait rejeter sans authentification', async () => {
+      const res = await request(app).get('/api/messages/search?query=Hello');
+
+      expect(res.status).to.equal(401);
+    });
+  });
 });

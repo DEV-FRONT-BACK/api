@@ -1,5 +1,7 @@
 import { expect } from 'chai';
 import mongoose from 'mongoose';
+import request from 'supertest';
+import { app } from '../src/app.js';
 import Contact from '../src/models/Contact.js';
 import { createLoggedClient } from './helpers/client.ts';
 
@@ -205,6 +207,66 @@ describe("Tests d'Intégration - Contacts", () => {
       expect(res.body.contacts).to.be.an('array');
       expect(res.body.contacts.length).to.equal(1);
       expect(res.body.contacts[0].status).to.equal('blocked');
+    });
+  });
+
+  describe('GET /api/contacts/search', () => {
+    it('devrait rechercher des contacts par nom ou email', async () => {
+      const client = await createLoggedClient(USER_1_EMAIL);
+      await client.post('/api/contacts/request').send({ contactId: USER_2_ID });
+      const aliceContact = await Contact.findOne({ userId: USER_1_ID, contactId: USER_2_ID });
+      await client.put(`/api/contacts/${aliceContact._id}/accept`);
+
+      const res = await client.get('/api/contacts/search?query=user');
+
+      expect(res.status).to.equal(200);
+      expect(res.body).to.have.property('contacts');
+      expect(res.body.contacts).to.be.an('array');
+      expect(res.body).to.have.property('total');
+    });
+
+    it('devrait rejeter une requête trop courte', async () => {
+      const client = await createLoggedClient(USER_1_EMAIL);
+      const res = await client.get('/api/contacts/search?query=a');
+
+      expect(res.status).to.equal(400);
+      expect(res.body.error).to.include('2 caractères');
+    });
+
+    it('devrait filtrer par statut', async () => {
+      const client = await createLoggedClient(USER_1_EMAIL);
+      await client.post('/api/contacts/request').send({ contactId: USER_2_ID });
+
+      const res = await client.get('/api/contacts/search?query=user&status=pending');
+
+      expect(res.status).to.equal(200);
+      expect(res.body.contacts).to.be.an('array');
+      if (res.body.contacts.length > 0) {
+        res.body.contacts.forEach((contact) => {
+          expect(contact.status).to.equal('pending');
+        });
+      }
+    });
+
+    it('devrait paginer les résultats', async () => {
+      const client = await createLoggedClient(USER_1_EMAIL);
+      await client.post('/api/contacts/request').send({ contactId: USER_2_ID });
+      const aliceContact = await Contact.findOne({ userId: USER_1_ID, contactId: USER_2_ID });
+      await client.put(`/api/contacts/${aliceContact._id}/accept`);
+
+      const res = await client.get('/api/contacts/search?query=user&page=1&limit=1');
+
+      expect(res.status).to.equal(200);
+      expect(res.body.contacts).to.be.an('array');
+      expect(res.body.contacts.length).to.be.at.most(1);
+      expect(res.body).to.have.property('page', 1);
+      expect(res.body).to.have.property('limit', 1);
+    });
+
+    it('devrait rejeter sans authentification', async () => {
+      const res = await request(app).get('/api/contacts/search?query=user');
+
+      expect(res.status).to.equal(401);
     });
   });
 });

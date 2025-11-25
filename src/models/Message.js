@@ -47,6 +47,8 @@ const messageSchema = new mongoose.Schema(
 
 messageSchema.index({ sender: 1, recipient: 1, createdAt: -1 });
 messageSchema.index({ recipient: 1, readAt: 1 });
+messageSchema.index({ content: 'text' });
+messageSchema.index({ createdAt: -1 });
 
 messageSchema.pre('validate', function (next) {
   if (!this.content && (!this.files || this.files.length === 0)) {

@@ -7,6 +7,7 @@ import {
   getContacts,
   getPendingContacts,
   requestContact,
+  searchContacts,
   unblockContact,
 } from '../controllers/contactController.js';
 import { authMiddleware } from '../middleware/auth.js';
@@ -18,6 +19,7 @@ router.put('/:id/accept', authMiddleware, acceptContact);
 router.delete('/:id', authMiddleware, deleteContact);
 router.get('/', authMiddleware, getContacts);
 router.get('/pending', authMiddleware, getPendingContacts);
+router.get('/search', authMiddleware, searchContacts);
 router.post('/:id/block', authMiddleware, blockContact);
 router.post('/:id/unblock', authMiddleware, unblockContact);
 router.get('/blocked', authMiddleware, getBlockedContacts);
