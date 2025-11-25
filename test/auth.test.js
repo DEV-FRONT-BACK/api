@@ -6,7 +6,6 @@ import { createLoggedClient } from './helpers/client.ts';
 
 describe("Tests d'Intégration - Authentification", () => {
   const USER_1_EMAIL = 'user+1@example.com';
-  const USER_2_EMAIL = 'user+2@example.com';
 
   describe('POST /api/auth/register', () => {
     it('devrait créer un nouvel utilisateur', async () => {

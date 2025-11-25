@@ -552,7 +552,9 @@ body {
   line-height: 1;
   color: white;
   opacity: 0;
-  transition: opacity 0.2s, background 0.2s;
+  transition:
+    opacity 0.2s,
+    background 0.2s;
   width: 28px;
   height: 28px;
   display: flex;

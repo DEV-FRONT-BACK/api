@@ -40,7 +40,7 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route non trouvée' });
 });
 
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   console.error('Erreur:', err);
   res.status(err.status || 500).json({
     error: err.message || 'Erreur serveur interne',

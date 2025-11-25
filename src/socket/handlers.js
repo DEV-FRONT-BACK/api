@@ -22,7 +22,7 @@ const socketHandler = (io) => {
       socket.userId = user._id.toString();
       socket.user = user;
       next();
-    } catch (error) {
+    } catch {
       next(new Error('Authentification échouée'));
     }
   });
