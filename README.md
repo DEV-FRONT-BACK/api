@@ -1,3 +1,49 @@
+# 📱 WhatsApp Clone - Backend API
+
+API REST et WebSocket pour l'application de messagerie instantanée (Clone WhatsApp).
+Gère l'authentification, les messages en temps réel, les fichiers et les contacts.
+
+## 🛠️ Stack Technique
+
+- **Runtime** : Node.js
+- **Framework** : Express.js
+- **Base de données** : MongoDB (Mongoose)
+- **Temps Réel** : Socket.io
+- **Sécurité** : JWT, Bcrypt
+
+## 🚀 Démarrage Rapide
+
+1.  **Installation**
+
+    ```bash
+    npm install
+    ```
+
+2.  **Configuration**
+    Copiez le fichier d'exemple et ajustez les variables (Mongo URI, etc.) :
+
+    ```bash
+    cp .env.example .env
+    ```
+
+3.  **Lancement (Dev)**
+    ```bash
+    npm run dev
+    ```
+    Le serveur sera accessible sur `http://localhost:3000`.
+
+## 📖 Documentation
+
+Une documentation détaillée des endpoints API est disponible dans [API_DOCUMENTATION.md](./API_DOCUMENTATION.md).
+
+## ✅ Fonctionnalités Clés
+
+- 🔐 **Authentification** : Inscription, Connexion, Profil.
+- 💬 **Messagerie** : Chat 1-1, Historique, Statuts (Lu/Distribué).
+- ⚡ **Temps Réel** : Socket.io pour les messages et statuts en direct.
+- 📁 **Fichiers** : Upload d'images, vidéos et documents.
+- 👥 **Contacts** : Demandes d'amis, Liste de contacts, Blocage.
+
 # WhatsApp Clone API - Messagerie Temps Réel
 
 API REST et WebSocket pour application de messagerie instantanée avec gestion de contacts, notifications, et partage de fichiers. Développée avec Express.js, Socket.io, MongoDB et JWT.
